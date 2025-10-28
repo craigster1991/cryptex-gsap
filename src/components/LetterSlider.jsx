@@ -2,16 +2,20 @@ import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
+import { useLetters } from "../contexts/LetterContext";
 import "./LetterSlider.css";
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
 
-const LetterSlider = () => {
+const LetterSlider = ({ wheelIndex = 0 }) => {
   const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+  const initialIndexRef = useRef(Math.round(Math.random() * letters.length));
+  const initialIndex = initialIndexRef.current;
   const sliderRef = useRef(null);
   const containerRef = useRef(null);
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const draggableInstance = useRef(null);
+  const { updateLetter } = useLetters();
 
   const tickSound = () => {
     const audio = new Audio(import.meta.env.BASE_URL + 'tick.mp3');
@@ -36,7 +40,13 @@ const LetterSlider = () => {
     const maxY = centerOffset;
     const minY = centerOffset - (letters.length - 1) * letterHeight;
 
-    let lastIndex = 0;
+    const initialY = centerOffset - initialIndex * letterHeight;
+    gsap.set(slider, { y: initialY });
+
+    let lastIndex = initialIndex;
+
+    // Set initial letter in context
+    updateLetter(wheelIndex, letters[initialIndex]);
 
     const updateIndexFromPosition = (y) => {
       const index = Math.round((centerOffset - y) / letterHeight);
@@ -46,6 +56,7 @@ const LetterSlider = () => {
         lastIndex = clampedIndex;
         tickSound();
         setCurrentIndex(clampedIndex);
+        updateLetter(wheelIndex, letters[clampedIndex]);
       }
     }
 
@@ -55,6 +66,8 @@ const LetterSlider = () => {
         minY: minY,
         maxY: maxY,
       },
+      dragResistance: 0.5,
+      edgeResistance: 0,
       inertia: true,
       onDragEnd: function () {
         updateIndexFromPosition(this.y)
@@ -67,17 +80,12 @@ const LetterSlider = () => {
       }
     })[0];
 
-    console.log("useEffect run");
     return () => {
       if (draggableInstance.current) {
         draggableInstance.current.kill();
       }
     };
-  }, []);
-
-  useEffect(() => {
-    console.log(letters[currentIndex]);
-  }, [currentIndex]);
+  }, [wheelIndex, updateLetter]);
 
   return (
     <div className="letter-slider-container" ref={containerRef}>
@@ -91,6 +99,7 @@ const LetterSlider = () => {
           </div>
         ))}
       </div>
+      <div className="gradient-cover"></div>
     </div>
   );
 };
