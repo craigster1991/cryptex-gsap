@@ -1,0 +1,37 @@
+.letter-slider-container {
+  position: relative;
+  width: 120px;
+  height: 300px;
+  background: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0.1) 0%,
+    transparent 20%,
+    transparent 80%,
+    rgba(0, 0, 0, 0.1) 100%);
+  border: 2px solid #333;
+  overflow: hidden;
+}
+
+.letter-slider {
+  position: absolute;
+  width: 100%;
+  cursor: grab;
+  user-select: none;
+}
+
+.letter-slider:active {
+  cursor: grabbing;
+}
+
+.letter-item {
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  color: #333;
+  border-bottom: 1px solid #555;
+}
+
+.letter-item.active {
+  color: #007bff;
+}
