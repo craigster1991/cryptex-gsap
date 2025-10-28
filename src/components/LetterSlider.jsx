@@ -14,7 +14,7 @@ const LetterSlider = () => {
   const draggableInstance = useRef(null);
 
   const tickSound = () => {
-    const audio = new Audio(`/tick.mp3`);
+    const audio = new Audio(import.meta.env.BASE_URL + 'tick.mp3');
     audio.play();
     
     // haptic feedback for mobile
