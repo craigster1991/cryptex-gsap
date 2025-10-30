@@ -44,3 +44,32 @@
   background: linear-gradient(to bottom, rgba(36, 36, 36, 1), rgba(36, 36, 36, 0) 30%, rgba(36, 36, 36, 0) 70%, rgba(36, 36, 36, 1) 100%);
   z-index: 9999999;
 }
+
+/* Mobile horizontal layout */
+.letter-slider-container.mobile {
+  width: 300px;
+  height: 120px;
+}
+
+.letter-slider-container.mobile .letter-slider {
+  height: 100%;
+  width: auto;
+  display: flex;
+  flex-direction: row;
+}
+
+.letter-slider-container.mobile .letter-item {
+  width: 60px;
+  height: 100%;
+  border-bottom: none;
+  border-right: 1px solid #555;
+  flex-shrink: 0;
+}
+
+.letter-slider-container.mobile .letter-item:last-child {
+  border-right: none;
+}
+
+.letter-slider-container.mobile .gradient-cover {
+  background: linear-gradient(to right, rgba(36, 36, 36, 1), rgba(36, 36, 36, 0) 30%, rgba(36, 36, 36, 0) 70%, rgba(36, 36, 36, 1) 100%);
+}

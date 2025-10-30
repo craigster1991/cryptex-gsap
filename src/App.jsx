@@ -1,18 +1,27 @@
 import './App.css'
 import LetterSlider from './components/LetterSlider'
 import { LetterProvider, useLetters } from './contexts/LetterContext'
+import { useIsMobile } from './hooks/useIsMobile'
 
 function AppContent() {
   const { selectedLetters } = useLetters();
+  const isMobile = useIsMobile();
 
   return (
     <>
-      <div>
+      <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '100vh',
+        gap: '20px'
+      }}>
         <div style={{
           display: 'flex',
           justifyContent: 'center',
           alignItems: 'center',
-          flexDirection: 'row',
+          flexDirection: isMobile ? 'column' : 'row',
           gap: '10px'
         }}>
           <LetterSlider wheelIndex={0} />

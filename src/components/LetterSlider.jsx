@@ -3,6 +3,7 @@ import { gsap } from "gsap";
 import { Draggable } from "gsap/Draggable";
 import { InertiaPlugin } from "gsap/InertiaPlugin";
 import { useLetters } from "../contexts/LetterContext";
+import { useIsMobile } from "../hooks/useIsMobile";
 import "./LetterSlider.css";
 
 gsap.registerPlugin(Draggable, InertiaPlugin);
@@ -15,6 +16,7 @@ const LetterSlider = ({ wheelIndex = 0 }) => {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const draggableInstance = useRef(null);
   const { updateLetter } = useLetters();
+  const isMobile = useIsMobile();
 
   const tickSound = () => {
     const audio = new Audio(import.meta.env.BASE_URL + 'tick.mp3');
@@ -32,25 +34,30 @@ const LetterSlider = ({ wheelIndex = 0 }) => {
 
     if (!slider || !container) return;
 
-    const letterHeight = slider.children[0]?.offsetHeight || 60;
-    const containerHeight = container.offsetHeight;
-    const centerOffset = containerHeight / 2 - letterHeight / 2;
-    const cycleHeight = letters.length * letterHeight;
+    const letterSize = slider.children[0]?.[isMobile ? 'offsetWidth' : 'offsetHeight'] || 60;
+    const containerSize = isMobile ? container.offsetWidth : container.offsetHeight;
+    const centerOffset = containerSize / 2 - letterSize / 2;
+    const cycleSize = letters.length * letterSize;
+    const axis = isMobile ? 'x' : 'y';
 
-    // Start at middle copy + initial random offset
-    const middleCopyOffset = 2 * cycleHeight; // Start at 3rd copy (index 2)
-    const initialY = centerOffset - middleCopyOffset - (initialIndex * letterHeight);
-    gsap.set(slider, { y: initialY });
+    // Start at middle copy + initial offset
+    const middleCopyOffset = 2 * cycleSize;
+    const initialPos = centerOffset - middleCopyOffset - (currentIndex * letterSize);
+
+    // Reset both axes, then set the active one
+    gsap.set(slider, {
+      x: isMobile ? initialPos : 0,
+      y: isMobile ? 0 : initialPos
+    });
 
     // Set bounds to allow scrolling 2 full cycles in each direction
-    const maxY = initialY + (2 * cycleHeight);
-    const minY = initialY - (2 * cycleHeight);
+    const maxPos = initialPos + (2 * cycleSize);
+    const minPos = initialPos - (2 * cycleSize);
 
-    let lastIndex = initialIndex;
+    let lastIndex = currentIndex;
 
-
-    const updateIndexFromPosition = (y) => {
-      const rawIndex = Math.round((centerOffset - y) / letterHeight);
+    const updateIndexFromPosition = (pos) => {
+      const rawIndex = Math.round((centerOffset - pos) / letterSize);
       const wrappedIndex = ((rawIndex % letters.length) + letters.length) % letters.length;
 
       if (wrappedIndex !== lastIndex) {
@@ -61,69 +68,76 @@ const LetterSlider = ({ wheelIndex = 0 }) => {
       }
     }
 
-    const checkTeleport = (currentY) => {
-      // Calculate absolute index based on position
-      const absoluteIndex = Math.round((centerOffset - currentY) / letterHeight);
+    const checkTeleport = (currentPos) => {
+      const absoluteIndex = Math.round((centerOffset - currentPos) / letterSize);
 
-      // We have 5 copies (indices 0-129):
-      // Copy 0: 0-25, Copy 1: 26-51, Copy 2: 52-77, Copy 3: 78-103, Copy 4: 104-129
-      // Stay within copies 1, 2, 3 (indices 26-103)
-
-      // Scrolled down into copy 4
+      // Scrolled into copy 4
       if (absoluteIndex >= 104) {
-        const newY = currentY + cycleHeight;
-        gsap.set(slider, { y: newY });
+        const newPos = currentPos + cycleSize;
+        gsap.set(slider, {
+          x: isMobile ? newPos : 0,
+          y: isMobile ? 0 : newPos
+        });
         if (draggableInstance.current) {
           draggableInstance.current.update();
-          draggableInstance.current.applyBounds({
-            minY: newY - (2 * cycleHeight),
-            maxY: newY + (2 * cycleHeight)
-          });
+          const bounds = isMobile
+            ? { minX: newPos - (2 * cycleSize), maxX: newPos + (2 * cycleSize) }
+            : { minY: newPos - (2 * cycleSize), maxY: newPos + (2 * cycleSize) };
+          draggableInstance.current.applyBounds(bounds);
         }
-        return newY;
+        return newPos;
       }
 
-      // Scrolled up into copy 0
+      // Scrolled into copy 0
       if (absoluteIndex < 26) {
-        const newY = currentY - cycleHeight;
-        gsap.set(slider, { y: newY });
+        const newPos = currentPos - cycleSize;
+        gsap.set(slider, {
+          x: isMobile ? newPos : 0,
+          y: isMobile ? 0 : newPos
+        });
         if (draggableInstance.current) {
           draggableInstance.current.update();
-          draggableInstance.current.applyBounds({
-            minY: newY - (2 * cycleHeight),
-            maxY: newY + (2 * cycleHeight)
-          });
+          const bounds = isMobile
+            ? { minX: newPos - (2 * cycleSize), maxX: newPos + (2 * cycleSize) }
+            : { minY: newPos - (2 * cycleSize), maxY: newPos + (2 * cycleSize) };
+          draggableInstance.current.applyBounds(bounds);
         }
-        return newY;
+        return newPos;
       }
 
-      return currentY;
+      return currentPos;
     }
 
+    const bounds = isMobile
+      ? { minX: minPos, maxX: maxPos }
+      : { minY: minPos, maxY: maxPos };
+
     draggableInstance.current = Draggable.create(slider, {
-      type: "y",
-      bounds: {
-        minY: minY,
-        maxY: maxY
-      },
+      type: axis,
+      bounds: bounds,
       dragResistance: 0.5,
       edgeResistance: 1,
       inertia: true,
-      snap: function (endValue) {
-        return Math.round(endValue / letterHeight) * letterHeight;
+      snap: {
+        [axis]: function (endValue) {
+          return Math.round(endValue / letterSize) * letterSize;
+        }
       },
       maxDuration: 0.5,
       throwResistance: 5000,
       onDrag: function () {
-        updateIndexFromPosition(this.y);
+        updateIndexFromPosition(this[axis]);
       },
       onDragEnd: function () {
-        checkTeleport(this.y);
-        updateIndexFromPosition(this.y);
+        checkTeleport(this[axis]);
+        updateIndexFromPosition(this[axis]);
       },
       onThrowUpdate: function () {
-        checkTeleport(this.y);
-        updateIndexFromPosition(this.y);
+        checkTeleport(this[axis]);
+        updateIndexFromPosition(this[axis]);
+      },
+      onThrowComplete: function () {
+        updateIndexFromPosition(this[axis]);
       }
     })[0];
 
@@ -132,7 +146,7 @@ const LetterSlider = ({ wheelIndex = 0 }) => {
         draggableInstance.current.kill();
       }
     };
-  }, [wheelIndex, updateLetter]);
+  }, [wheelIndex, updateLetter, isMobile]);
 
   // Render 5 copies for infinite scroll buffer
   const repeatedLetters = [
@@ -144,7 +158,7 @@ const LetterSlider = ({ wheelIndex = 0 }) => {
   ];
 
   return (
-    <div className="letter-slider-container" ref={containerRef}>
+    <div className={`letter-slider-container ${isMobile ? "mobile" : ""}`} ref={containerRef}>
       <div className="letter-slider" ref={sliderRef}>
         {repeatedLetters.map((letter, index) => {
           const letterIndex = index % letters.length;
